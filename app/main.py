@@ -1,24 +1,33 @@
 import csv
 
 import spotipy
+import typer
 from spotipy.oauth2 import SpotifyOAuth
+from typing_extensions import Annotated
 
+app = typer.Typer()
 scope = "user-library-read"
 
 
-# Rename to spotify personal data exporter
-def run():
-    with open("results.csv", "w", encoding="utf-8", newline='') as f:
+@app.command()
+def liked_songs(client_id: Annotated[str, typer.Option(help="The Spotify Client ID")],
+                client_secret: Annotated[str, typer.Option(help="The Spotify Client Secret")],
+                ):
+    with open("liked_songs.csv", "w", encoding="utf-8", newline='') as f:
         # noinspection PyTypeChecker
         writer = csv.DictWriter(f, fieldnames=[
             "#", "Title", "Artist names", "Album", "Date added", "ISRC", "URL", "Is playable"
         ])
-        _run(writer)
+        _run(writer, client_id=client_id, client_secret=client_secret)
 
 
-def _run(writer: csv.DictWriter):
+def _run(writer: csv.DictWriter, client_id: str, client_secret: str):
     writer.writeheader()
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope,
+                                                   client_id=client_id,
+                                                   client_secret=client_secret,
+                                                   redirect_uri="http://127.0.0.1:8888/callback",
+                                                   ))
     offset = 0
     while True:
         results = sp.current_user_saved_tracks(limit=50, offset=offset)
@@ -54,4 +63,4 @@ def _run(writer: csv.DictWriter):
 
 
 if __name__ == '__main__':
-    run()
+    app()
